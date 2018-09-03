@@ -1,7 +1,8 @@
-package com.yxhuang.fluxandroid;
+package com.yxhuang.fluxtodo;
 
-import android.app.Activity;
+import android.content.Context;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
@@ -10,14 +11,17 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 
-import com.yxhuang.fluxandroid.adapter.TodoAdapter;
-import com.yxhuang.fluxandroid.data.DataType;
-import com.yxhuang.fluxandroid.data.TodoData;
+import com.yxhuang.flux.base.BaseActivity;
+import com.yxhuang.fluxannotation.FluxAnnotation;
+import com.yxhuang.fluxtodo.action.MainAction;
+import com.yxhuang.fluxtodo.adapter.TodoAdapter;
+import com.yxhuang.fluxtodo.data.TodoData;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends Activity {
+public class MainActivity extends BaseActivity<MainStore>{
     private static final String TAG = "TodoMainActivity";
 
     private EditText edt_input;
@@ -35,7 +39,7 @@ public class MainActivity extends Activity {
 
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -59,15 +63,8 @@ public class MainActivity extends Activity {
         mAdapter.setCheckboxSelect(new TodoAdapter.ICheckboxSelect() {
             @Override
             public void onSelected(int index, TodoData data) {
-                if (data != null && mDatas.contains(data)){
-                  int indexOf = mDatas.indexOf(data);
-                    TodoData msg = mDatas.get(indexOf);
-                    if (msg != null){
-                        msg.setType(DataType.COMPLETE);
-                    }
-                }
-
-                Log.i(TAG, "onSelected index=" + index);
+              mStore.setSelect(data);
+              Log.i(TAG, "onSelected index=" + index);
             }
         });
 
@@ -75,7 +72,7 @@ public class MainActivity extends Activity {
             @Override
             public void onClick(View v) {
                 if (!TextUtils.isEmpty(edt_input.getText().toString())){
-                    addMessage(edt_input.getText().toString());
+                    mStore.addMessage(edt_input.getText().toString());
                     clearInput();
                 }
             }
@@ -84,31 +81,36 @@ public class MainActivity extends Activity {
         btn_all.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                selectAll();
+                mStore.selectAll();
 
             }
         });
         btn_active.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                selectActive();
+                mStore.selectActive();
             }
         });
         btn_complete.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                selectComplete();
+                mStore.selectComplete();
             }
         });
 
     }
 
-    public void addMessage(String msg){
-        Log.i(TAG, "addMessage msg= " + msg);
-        TodoData todoData = new TodoData(msg);
-        mDatas.add(todoData);
+    @Override
+    public MainStore createStore(WeakReference view) {
+        return new MainStore(view);
+    }
 
-        mWorkDatas.add(todoData);
+
+    @FluxAnnotation(action = MainAction.SELECT_ALL)
+    public void updataView(List<TodoData> datas){
+        Log.i(TAG, "MainActivity updataView" + datas.size());
+        mWorkDatas.clear();
+        mWorkDatas.addAll(datas);
         mAdapter.notifyDataSetChanged();
     }
 
@@ -116,31 +118,10 @@ public class MainActivity extends Activity {
         edt_input.getText().clear();
     }
 
-    private void selectAll(){
-        mWorkDatas.clear();
-        mWorkDatas.addAll(mDatas);
-        mAdapter.notifyDataSetChanged();
-    }
 
-    private void selectActive(){
-        mWorkDatas.clear();
-        for (int i = 0; i < mDatas.size(); i++){
-            TodoData data = mDatas.get(i);
-            if (data.getType() == DataType.ACTIVE){
-                mWorkDatas.add(data);
-            }
-        }
-        mAdapter.notifyDataSetChanged();
-    }
-
-    private void selectComplete(){
-        mWorkDatas.clear();
-        for (int i = 0; i < mDatas.size(); i++){
-            TodoData data = mDatas.get(i);
-            if (data.getType() == DataType.COMPLETE){
-                mWorkDatas.add(data);
-            }
-        }
-        mAdapter.notifyDataSetChanged();
+    @Nullable
+    @Override
+    public Context getContext() {
+        return this;
     }
 }

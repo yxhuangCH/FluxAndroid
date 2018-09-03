@@ -1,1 +1,5 @@
-include ':app'
+include ':app', ':fluxprocessor', ':flux', ':fluxtodo'
+include ':fluxprocessor'
+include ':fluxannotation'
+
+
